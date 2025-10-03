@@ -1,0 +1,361 @@
+{
+	"info": {
+		"_postman_id": "1f808a1e-86d2-4783-be85-ef8a24b25b99",
+		"name": "Appspace QA Challenge",
+		"description": "This collection validates the **Tasks API** with schema-based contract checks and end-to-end flow coverage:\n\n- **List Tasks** → Ensures all tasks conform to schema.\n    \n- **Create Task** → Verifies new tasks are created with correct fields and schema compliance.\n    \n- **Get Task** → Confirms created task matches stored values.\n    \n- **Delete Task** → Requires 204 No Content and a follow-up GET returning 404.\n    \n\nAdditional global tests enforce:\n\n- Correct status codes per method.\n    \n- JSON Content-Type when a body is present.\n    \n- Response time < 800ms.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37422037"
+	},
+	"item": [
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "List Tasks",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Response matches Task List schema\", () => {",
+									"    const schema = JSON.parse(pm.collectionVariables.get(\"schema.task_list\"));",
+									"    pm.response.to.have.jsonSchema(schema);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Task",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const taskCreateSchema = JSON.parse(pm.collectionVariables.get(\"schema.task_create\"));",
+									"",
+									"pm.test(\"Created task matches schema\", function () {",
+									"  pm.response.to.have.jsonSchema(taskCreateSchema);",
+									"});",
+									"",
+									"const created = pm.response.json();",
+									"pm.collectionVariables.set(\"taskId\", String(created.id));",
+									"pm.collectionVariables.set(\"title\", String(created.title));",
+									"pm.collectionVariables.set(\"completed\", String(created.completed));"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"{{$randomWord}}\",\n  \"completed\": {{$randomBoolean}}\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Created Task",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const taskSchema = JSON.parse(pm.collectionVariables.get(\"schema.task\"));",
+									"",
+									"pm.test(\"Response task matches schema\", function () {",
+									"  pm.response.to.have.jsonSchema(taskSchema);",
+									"});",
+									"",
+									"const body = pm.response.json();",
+									"pm.test(\"Fetched task matches saved id/title/completed\", function () {",
+									"  pm.expect(String(body.id)).to.eql(pm.collectionVariables.get(\"taskId\"));",
+									"  pm.expect(String(body.title)).to.eql(pm.collectionVariables.get(\"title\"));",
+									"  pm.expect(String(body.completed)).to.eql(pm.collectionVariables.get(\"completed\"));",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/{{taskId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks",
+								"{{taskId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Task",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.sendRequest({",
+									"  url: `${pm.variables.get(\"baseUrl\")}/tasks/${pm.collectionVariables.get(\"taskId\")}`,",
+									"  method: \"GET\",",
+									"  header: { \"Accept\": \"application/json\" }",
+									"}, (err, res) => {",
+									"  pm.test(\"Task has been deleted (GET returns 404)\", () => {",
+									"    pm.expect(err).to.be.null;",
+									"    pm.expect(res.code).to.equal(404);",
+									"  });",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/{{taskId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"tasks",
+								"{{taskId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							"(function initSchemas() {",
+							"    if (pm.collectionVariables.get(\"schema.task\")) return;",
+							"",
+							"    const taskSchema = {",
+							"        type: \"object\",",
+							"        required: [\"id\", \"title\", \"completed\", \"internalNotes\"],",
+							"        properties: {",
+							"            id: { type: \"number\" },",
+							"            title: { type: \"string\", minLength: 1 },",
+							"            completed: { type: \"boolean\" },",
+							"            internalNotes: { type: \"string\", minLength: 1 }",
+							"        },",
+							"        additionalProperties: false",
+							"    };",
+							"",
+							"    const taskListSchema = {",
+							"        type: \"array\",",
+							"        items: taskSchema",
+							"    };",
+							"",
+							"    const taskCreateSchema = {",
+							"        type: \"object\",",
+							"        required: [\"id\", \"title\", \"completed\"],",
+							"        properties: {",
+							"            id: { type: \"number\" },",
+							"            title: { type: \"string\", minLength: 1 },",
+							"            completed: { type: \"boolean\" }",
+							"        },",
+							"        additionalProperties: false",
+							"    };",
+							"",
+							"    pm.collectionVariables.set(\"schema.task\", JSON.stringify(taskSchema));",
+							"    pm.collectionVariables.set(\"schema.task_list\", JSON.stringify(taskListSchema));",
+							"    pm.collectionVariables.set(\"schema.task_create\", JSON.stringify(taskCreateSchema));",
+							"})();",
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					"const method = pm.request.method;",
+					"",
+					"switch (method) {",
+					"    case \"POST\":",
+					"        pm.test(\"Status code is 201 (POST)\", function () {",
+					"            pm.response.to.have.status(201);",
+					"        });",
+					"        break;",
+					"    case \"DELETE\":",
+					"        pm.test(\"Status code is 204 (DELETE)\", function () {",
+					"            pm.response.to.have.status(204);",
+					"        });",
+					"        break;",
+					"    case \"GET\":",
+					"        pm.test(\"Status code is 200 (GET)\", function () {",
+					"            pm.response.to.have.status(200);",
+					"        });",
+					"        break;",
+					"}",
+					"",
+					"pm.test(\"Content-Type is JSON (when applicable)\", function () {",
+					"    const code = pm.response.code;",
+					"    const ct = pm.response.headers.get(\"Content-Type\");",
+					"    const hasBody = pm.response.text() && pm.response.text().length > 0;",
+					"",
+					"    if (code === 204 || !hasBody) {",
+					"        pm.expect(ct, \"No Content-Type expected for empty 204 response\").to.satisfy(v => v === null || v === undefined);",
+					"    } else {",
+					"        pm.expect(ct, \"Expected application/json Content-Type\").to.match(/application\\/json/i);",
+					"    }",
+					"});",
+					"",
+					"pm.test(\"Response time is less than 800ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(800);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": ""
+		},
+		{
+			"key": "schema.task",
+			"value": ""
+		},
+		{
+			"key": "schema.task_list",
+			"value": ""
+		},
+		{
+			"key": "schema.task_create",
+			"value": ""
+		},
+		{
+			"key": "taskId",
+			"value": ""
+		},
+		{
+			"key": "title",
+			"value": ""
+		},
+		{
+			"key": "completed",
+			"value": ""
+		}
+	]
+}
